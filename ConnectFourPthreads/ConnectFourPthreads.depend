@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1568897483 source:c:\users\phil\dev\github\connectfourgame\connectfourpthreads\main.c
+	<stdio.h>
+	<stdlib.h>
+	<conio.h>
+	<windows.h>
+	<unistd.h>
+
