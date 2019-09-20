@@ -16,7 +16,7 @@ void printBoard(char *board);
 void clearScreen();
 int takeTurn(char *board, int player, const char*);
 int checkWin(char *board);
-int checkFour(char *board, int, int, int, int);
+int checkFour(char *board, int a, int b, int c, int d);
 void *horizontalCheck(void *board);
 void *verticalCheck(void *board);
 void *diagonalCheck(void *board);
@@ -33,6 +33,7 @@ struct putChip_params
     int player;
     int col;
     char* board;
+    int result;;
 };
 
 int main(int argc, char *argv[])
@@ -66,11 +67,7 @@ int main(int argc, char *argv[])
         printf("\nTerminate program in ");
         for (int i = 3;i >= 0; i--)
         {
-#ifdef __WIN32
-        Sleep(1000);
-#else if __unix__
-	    sleep(1);
-#endif
+            Sleep(1000);
             printf("%d ",i);
         }
     }
@@ -134,7 +131,7 @@ int takeTurn(char *board, int player, const char *CHIPS)
 
     pthread_mutex_destroy(&lock);
 
-    return (int*)ret;
+    return (int)ret;
 }
 void *putChip(void *args)
 {
@@ -156,26 +153,23 @@ void *putChip(void *args)
             if (NextRow >= 35)
             {
                 p->board[NextRow] = CHIPS[p->player];
-                return (void*)1;
+                p->result = 1;
+                return (void*) 1;
             }
         }
         else if (p->board[NextRow] != ' ' && p->board[CurrentRow] == ' ')
         {
             p->board[CurrentRow] = CHIPS[p->player];
-            return (void*)1;
+            p->result = 1;
+            return (void*) 1;
         }
         else if (p->board[NextRow] != ' ' && p->board[CurrentRow] != ' ')
-	    return (void*)0;
+            return (void*) 0;
 
-
-#ifdef _WIN32
-            Sleep(100);
-#else if __unix__
-	    sleep(0.1);
-#endif
+        Sleep(100);
     }
     pthread_mutex_unlock(&lock);
-    return (void*)0;
+    return (void*) 0;
 }
 int checkWin(char *board)
 {
