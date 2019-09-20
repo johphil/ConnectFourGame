@@ -150,12 +150,15 @@ void *putChip(void *args)
                 return (void*) 1;
             }
         }
-        else if (p->board[NextRow] != ' ')
+        else if (p->board[NextRow] != ' ' && p->board[CurrentRow] == ' ')
         {
             p->board[CurrentRow] = CHIPS[p->player];
             p->result = 1;
             return (void*) 1;
         }
+        else if (p->board[NextRow] != ' ' && p->board[CurrentRow] != ' ')
+            return (void*) 0;
+
         Sleep(100);
     }
     pthread_mutex_unlock(&lock);
