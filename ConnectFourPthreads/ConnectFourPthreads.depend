@@ -1,8 +1,18 @@
 # depslib dependency file v1.0
-1568897483 source:c:\users\phil\dev\github\connectfourgame\connectfourpthreads\main.c
+1568999426 source:c:\users\phil\dev\github\connectfourgame\connectfourpthreads\main.c
+	<Windows.h>
+	<unistd.h>
 	<stdio.h>
 	<stdlib.h>
-	<conio.h>
-	<windows.h>
-	<unistd.h>
+	<string.h>
+	<pthread.h>
+
+1568972980 c:\users\phil\dev\github\connectfourgame\connectfourpthreads\board.h
+
+1568974695 c:\users\phil\dev\github\connectfourgame\connectfourpthreads\player.h
+
+1568983509 source:c:\users\phil\dev\github\connectfourgame\connectfourpthreads\src\board.cpp
+	"Board.h"
+
+1568983625 c:\users\phil\dev\github\connectfourgame\connectfourpthreads\include\board.h
 

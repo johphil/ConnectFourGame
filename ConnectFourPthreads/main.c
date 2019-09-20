@@ -1,6 +1,14 @@
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+
 #define BOARD_ROWS 6
 #define BOARD_COLS 7
 
@@ -9,133 +17,234 @@ void clearScreen();
 int takeTurn(char *board, int player, const char*);
 int checkWin(char *board);
 int checkFour(char *board, int, int, int, int);
-int horizontalCheck(char *board);
-int verticalCheck(char *board);
-int diagonalCheck(char *board);
+void *horizontalCheck(void *board);
+void *verticalCheck(void *board);
+void *diagonalCheck(void *board);
+void *putChip(void *args);
 
-int main(int argc, char *argv[]){
-   const char *PIECES = "XO";
-   char board[BOARD_ROWS * BOARD_COLS];
-   memset(board, ' ', BOARD_ROWS * BOARD_COLS);
+const char *CHIPS = "XO";
+pthread_t tid, tid1, tid2, tid3;
+pthread_attr_t attr, attr1, attr2, attr3;
+pthread_mutex_t lock;
 
-   int turn, done = 0;
 
-   for(turn = 0; turn < BOARD_ROWS * BOARD_COLS && !done; turn++){
-      printBoard(board);
-      while(!takeTurn(board, turn % 2, PIECES)){
-         printBoard(board);
-         puts("**Column full!**\n");
-      }
-      done = checkWin(board);
-   }
-   printBoard(board);
+struct putChip_params
+{
+    int player;
+    int col;
+    char* board;
+    int result;;
+};
 
-   if(turn == BOARD_ROWS * BOARD_COLS && !done){
-      puts("It's a tie!");
-   } else {
-      turn--;
-      printf("Player %d (%c) wins!\n", turn % 2 + 1, PIECES[turn % 2]);
-   }
+int main(int argc, char *argv[])
+{
+    char board[BOARD_ROWS * BOARD_COLS]; //board size = 6*7 = 42
+    memset(board, ' ', BOARD_ROWS * BOARD_COLS); //fill in board with spaces 42 times
 
-   return 0;
+    int turn, done = 0;
 
-}
-void printBoard(char *board){
-   int row, col;
+    for(turn = 0; turn < BOARD_ROWS * BOARD_COLS && !done; turn++)
+    {
+        printBoard(board);
+        while(!takeTurn(board, turn % 2, CHIPS))
+        {
+            printBoard(board);
+            puts("**Column full!**\n");
+        }
+        done = checkWin(board);
+    }
+    printBoard(board);
 
-   //system("clear");
-   clearScreen();
-   puts("\n    ****Connect Four****\n");
-   for(row = 0; row < BOARD_ROWS; row++){
-      for(col = 0; col < BOARD_COLS; col++){
-         printf("| %c ",  board[BOARD_COLS * row + col]);
-      }
-      puts("|");
-      puts("-----------------------------");
+    if(turn == BOARD_ROWS * BOARD_COLS && !done)
+    {
+        puts("It's a tie!");
+    }
+    else
+    {
+        turn--;
+        printf("Player %d (%c) wins!\n", turn % 2 + 1, CHIPS[turn % 2]);
+    }
 
-   }
-   puts("  1   2   3   4   5   6   7\n");
-
-}
-int takeTurn(char *board, int player, const char *PIECES){
-   int row, col = 0;
-   printf("Player %d (%c):\nEnter number coordinate: ", player + 1, PIECES[player]);
-
-   while(1){
-      if(1 != scanf("%d", &col) || col < 1 || col > 7 ){
-         while(getchar() != '\n');
-         puts("Number out of bounds! Try again.");
-      } else {
-         break;
-      }
-   }
-   col--;
-
-   for(row = BOARD_ROWS - 1; row >= 0; row--){
-      if(board[BOARD_COLS * row + col] == ' '){
-         board[BOARD_COLS * row + col] = PIECES[player];
-         return 1;
-      }
-   }
-   return 0;
+    return 0;
 
 }
-int checkWin(char *board){
-    return (horizontalCheck(board) || verticalCheck(board) || diagonalCheck(board));
+void printBoard(char *board)
+{
+    int col;
 
+    clearScreen();
+    puts("\n    ****Connect Four****\n");
+    for(int row = 0; row < BOARD_ROWS; row++)
+    {
+        for(col = 0; col < BOARD_COLS; col++)
+        {
+            printf("| %c ",  board[BOARD_COLS * row + col]);
+        }
+        puts("|");
+        puts("-----------------------------");
+    }
+    puts("  1   2   3   4   5   6   7\n");
 }
-int checkFour(char *board, int a, int b, int c, int d){
+
+int takeTurn(char *board, int player, const char *CHIPS)
+{
+    int col = 0;
+    printf("Player %d (%c):\nEnter column number: ", player + 1, CHIPS[player]);
+
+    while(1)
+    {
+        if(1 != scanf("%d", &col) || col < 1 || col > 7 )
+        {
+            while(getchar() != '\n');
+            puts("Number out of bounds! Try again.");
+            printf("Enter column number: ");
+        }
+        else
+        {
+            break;
+        }
+    }
+    col--;
+
+    struct putChip_params p;
+    p.player = player;
+    p.col = col;
+    p.board = board;
+    pthread_attr_init(&attr);
+
+    if (pthread_mutex_init(&lock, NULL) != 0)
+    {
+        printf("\n mutex init has failed\n");
+        exit(0);
+    }
+
+    void *ret = (int)0;
+    pthread_create(&tid,&attr,putChip, (void*)&p);
+    pthread_join(tid,&ret);
+
+    pthread_mutex_destroy(&lock);
+
+    return (int)ret;
+}
+void *putChip(void *args)
+{
+    struct putChip_params *p = args;
+    int NextRow, CurrentRow;
+
+    pthread_mutex_lock(&lock);
+    for (int row = 0; row < BOARD_ROWS; row++)
+    {
+        NextRow = BOARD_COLS * (row+1) + p->col;
+        CurrentRow = BOARD_COLS * row + p->col;
+
+        if (p->board[NextRow] == ' ' && p->board[CurrentRow] == ' ')
+        {
+            p->board[CurrentRow] = CHIPS[p->player];
+            printBoard(p->board);
+            p->board[CurrentRow] = ' ';
+
+            if (NextRow >= 35)
+            {
+                p->board[NextRow] = CHIPS[p->player];
+                p->result = 1;
+                return (void*) 1;
+            }
+        }
+        else if (p->board[NextRow] != ' ')
+        {
+            p->board[CurrentRow] = CHIPS[p->player];
+            p->result = 1;
+            return (void*) 1;
+        }
+        Sleep(100);
+    }
+    pthread_mutex_unlock(&lock);
+
+    return (void*) 0;
+}
+int checkWin(char *board)
+{
+    void *iret1, *iret2, *iret3 = (int)0;
+
+    pthread_attr_init(&attr1);
+    pthread_attr_init(&attr2);
+    pthread_attr_init(&attr3);
+
+    pthread_create(&tid1,&attr1,horizontalCheck, (void*)board);
+    pthread_create(&tid2,&attr2,verticalCheck, (void*)board);
+    pthread_create(&tid3,&attr3,diagonalCheck, (void*)board);
+
+    pthread_join(tid1,&iret1);
+    pthread_join(tid2,&iret2);
+    pthread_join(tid3,&iret3);
+
+    return ((int*)iret1 || (int*)iret2 || (int*)iret3);
+}
+int checkFour(char *board, int a, int b, int c, int d)
+{
     return (board[a] == board[b] && board[b] == board[c] && board[c] == board[d] && board[a] != ' ');
 
 }
-int horizontalCheck(char *board){
-    int row, col, idx;
+void *horizontalCheck(void *board)
+{
+    int col, idx;
     const int WIDTH = 1;
 
-    for(row = 0; row < BOARD_ROWS; row++){
-       for(col = 0; col < BOARD_COLS - 3; col++){
-          idx = BOARD_COLS * row + col;
-          if(checkFour(board, idx, idx + WIDTH, idx + WIDTH * 2, idx + WIDTH * 3)){
-             return 1;
-          }
-       }
+    for(int row = 0; row < BOARD_ROWS; row++)
+    {
+        for(col = 0; col < BOARD_COLS - 3; col++)
+        {
+            idx = BOARD_COLS * row + col;
+            if(checkFour((char*)board, idx, idx + WIDTH, idx + WIDTH * 2, idx + WIDTH * 3))
+            {
+                return (void *)1;
+            }
+        }
     }
-    return 0;
-
+    return (void *)0;
 }
-int verticalCheck(char *board){
-    int row, col, idx;
+void *verticalCheck(void *board)
+{
+    int col, idx;
     const int HEIGHT = 7;
 
-    for(row = 0; row < BOARD_ROWS - 3; row++){
-       for(col = 0; col < BOARD_COLS; col++){
-          idx = BOARD_COLS * row + col;
-          if(checkFour(board, idx, idx + HEIGHT, idx + HEIGHT * 2, idx + HEIGHT * 3)){
-              return 1;
-          }
-       }
+    for(int row = 0; row < BOARD_ROWS - 3; row++)
+    {
+        for(col = 0; col < BOARD_COLS; col++)
+        {
+            idx = BOARD_COLS * row + col;
+            if(checkFour((char*)board, idx, idx + HEIGHT, idx + HEIGHT * 2, idx + HEIGHT * 3))
+            {
+                return (void *)1;
+            }
+        }
     }
-    return 0;
+    return (void *)0;
 
 }
-int diagonalCheck(char *board){
-   int row, col, idx, count = 0;
-   const int DIAG_RGT = 6, DIAG_LFT = 8;
+void *diagonalCheck(void *board)
+{
+    int col, idx, count = 0;
+    const int DIAG_RGT = 6, DIAG_LFT = 8;
 
-   for(row = 0; row < BOARD_ROWS - 3; row++){
-      for(col = 0; col < BOARD_COLS; col++){
-         idx = BOARD_COLS * row + col;
-         if(count <= 3 && checkFour(board, idx, idx + DIAG_LFT, idx + DIAG_LFT * 2, idx + DIAG_LFT * 3) || count >= 3 && checkFour(board, idx, idx + DIAG_RGT, idx + DIAG_RGT * 2, idx + DIAG_RGT * 3)){
-            return 1;
-         }
-         count++;
-      }
-      count = 0;
-   }
-   return 0;
+    for(int row = 0; row < BOARD_ROWS - 3; row++)
+    {
+        for(col = 0; col < BOARD_COLS; col++)
+        {
+            idx = BOARD_COLS * row + col;
+            if((count <= 3 && checkFour((char*)board, idx, idx + DIAG_LFT, idx + DIAG_LFT * 2, idx + DIAG_LFT * 3)) || (count >= 3 && checkFour((char*)board, idx, idx + DIAG_RGT, idx + DIAG_RGT * 2, idx + DIAG_RGT * 3)))
+            {
+                return (void *)1;
+            }
+            count++;
+        }
+        count = 0;
+    }
+    return (void *)0;
 
 }
-void clearScreen() {
+void clearScreen()
+{
 #ifdef WIN32
     system("cls");
 #else
