@@ -1,9 +1,3 @@
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,21 +14,8 @@ int checkFour(char *board, int, int, int, int);
 void *horizontalCheck(void *board);
 void *verticalCheck(void *board);
 void *diagonalCheck(void *board);
-void *putChip(void *args);
 
 const char *CHIPS = "XO";
-pthread_t tid, tid1, tid2, tid3;
-pthread_attr_t attr, attr1, attr2, attr3;
-pthread_mutex_t lock;
-
-
-struct putChip_params
-{
-    int player;
-    int col;
-    char* board;
-    int result;;
-};
 
 int main(int argc, char *argv[])
 {
@@ -106,76 +87,45 @@ int takeTurn(char *board, int player, const char *CHIPS)
     }
     col--;
 
-    struct putChip_params p;
-    p.player = player;
-    p.col = col;
-    p.board = board;
-    pthread_attr_init(&attr);
-
-    if (pthread_mutex_init(&lock, NULL) != 0)
-    {
-        printf("\n mutex init has failed\n");
-        exit(0);
-    }
-
-    void *ret = (int)0;
-    pthread_create(&tid,&attr,putChip, (void*)&p);
-    pthread_join(tid,&ret);
-
-    pthread_mutex_destroy(&lock);
-
-    return (int)ret;
-}
-void *putChip(void *args)
-{
-    struct putChip_params *p = args;
     int NextRow, CurrentRow;
 
-    pthread_mutex_lock(&lock);
     for (int row = 0; row < BOARD_ROWS; row++)
     {
-        NextRow = BOARD_COLS * (row+1) + p->col;
-        CurrentRow = BOARD_COLS * row + p->col;
+        NextRow = BOARD_COLS * (row+1) + col;
+        CurrentRow = BOARD_COLS * row + col;
 
-        if (p->board[NextRow] == ' ' && p->board[CurrentRow] == ' ')
+        if (board[NextRow] == ' ')
         {
-            p->board[CurrentRow] = CHIPS[p->player];
-            printBoard(p->board);
-            p->board[CurrentRow] = ' ';
+            board[CurrentRow] = CHIPS[player];
+            printBoard(board);
+            board[CurrentRow] = ' ';
 
             if (NextRow >= 35)
             {
-                p->board[NextRow] = CHIPS[p->player];
-                p->result = 1;
-                return (void*) 1;
+                Sleep(100);
+                board[NextRow] = CHIPS[player];
+                return 1;
             }
         }
-        else if (p->board[NextRow] != ' ' && p->board[CurrentRow] == ' ')
+        else if (board[NextRow] != ' ')
         {
-            p->board[CurrentRow] = CHIPS[p->player];
-            p->result = 1;
-            return (void*) 1;
+                board[CurrentRow] = CHIPS[player];
+                return 1;
         }
-        else if (p->board[NextRow] != ' ' && p->board[CurrentRow] != ' ')
-            return (void*) 0;
 
         Sleep(100);
     }
-    pthread_mutex_unlock(&lock);
 
-    return (void*) 0;
+    return 0;
 }
 int checkWin(char *board)
 {
+    pthread_t tid1, tid2, tid3;
     void *iret1, *iret2, *iret3 = (int)0;
 
-    pthread_attr_init(&attr1);
-    pthread_attr_init(&attr2);
-    pthread_attr_init(&attr3);
-
-    pthread_create(&tid1,&attr1,horizontalCheck, (void*)board);
-    pthread_create(&tid2,&attr2,verticalCheck, (void*)board);
-    pthread_create(&tid3,&attr3,diagonalCheck, (void*)board);
+    pthread_create(&tid1,NULL,horizontalCheck, (void*)board);
+    pthread_create(&tid2,NULL,verticalCheck, (void*)board);
+    pthread_create(&tid3,NULL,diagonalCheck, (void*)board);
 
     pthread_join(tid1,&iret1);
     pthread_join(tid2,&iret2);
