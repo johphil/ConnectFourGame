@@ -63,6 +63,13 @@ int main(int argc, char *argv[])
     {
         turn--;
         printf("Player %d (%c) wins!\n", turn % 2 + 1, CHIPS[turn % 2]);
+
+        printf("\nTerminate program in ");
+        for (int i = 3;i >= 0; i--)
+        {
+            Sleep(1000);
+            printf("%d ",i);
+        }
     }
 
     return 0;
