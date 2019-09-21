@@ -259,9 +259,12 @@ void *diagonalCheck(void *board)
 }
 void clearScreen()
 {
-#ifdef WIN32
+#ifdef __linux__
+    printf("\e[2J\e[H");
+#endif
+#ifdef __WIN32
     system("cls");
 #else
     system("clear");
-#endif // WIN32
+#endif
 }
