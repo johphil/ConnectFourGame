@@ -1,13 +1,12 @@
-#ifdef _WIN32
-#include <Windows.h>
+#ifdef __linux__
 #else
-#include <unistd.h>
+    #include <Windows.h>
 #endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define BOARD_ROWS 6
 #define BOARD_COLS 7
@@ -16,7 +15,7 @@ void printBoard(char *board);
 void clearScreen();
 int takeTurn(char *board, int player, const char*);
 int checkWin(char *board);
-int checkFour(char *board, int a, int b, int c, int d);
+int checkFour(char *board, int, int, int, int);
 void *horizontalCheck(void *board);
 void *verticalCheck(void *board);
 void *diagonalCheck(void *board);
@@ -33,7 +32,6 @@ struct putChip_params
     int player;
     int col;
     char* board;
-    int result;;
 };
 
 int main(int argc, char *argv[])
@@ -67,7 +65,12 @@ int main(int argc, char *argv[])
         printf("\nTerminate program in ");
         for (int i = 3;i >= 0; i--)
         {
+#ifdef __linux__
+            fflush(stdout);
+            sleep(1);
+#else
             Sleep(1000);
+#endif
             printf("%d ",i);
         }
     }
@@ -153,23 +156,25 @@ void *putChip(void *args)
             if (NextRow >= 35)
             {
                 p->board[NextRow] = CHIPS[p->player];
-                p->result = 1;
-                return (void*) 1;
+                return (void*)1;
             }
         }
         else if (p->board[NextRow] != ' ' && p->board[CurrentRow] == ' ')
         {
             p->board[CurrentRow] = CHIPS[p->player];
-            p->result = 1;
-            return (void*) 1;
+            return (void*)1;
         }
         else if (p->board[NextRow] != ' ' && p->board[CurrentRow] != ' ')
-            return (void*) 0;
-
+	    return (void*)0;
+#ifdef __linux__
+        fflush(stdout);
+        usleep(100000);
+#else
         Sleep(100);
+#endif
     }
     pthread_mutex_unlock(&lock);
-    return (void*) 0;
+    return (void*)0;
 }
 int checkWin(char *board)
 {
@@ -254,8 +259,8 @@ void *diagonalCheck(void *board)
 }
 void clearScreen()
 {
-#ifdef WIN32
-    system("cls");
+#ifdef __linux__
+    printf("\e[2J\e[H");
 #else
     system("clear");
 #endif // WIN32
