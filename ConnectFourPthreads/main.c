@@ -1,13 +1,12 @@
-#ifdef _WIN32
-#include <Windows.h>
+#ifdef __linux__
 #else
-#include <unistd.h>
+    #include <Windows.h>
 #endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #define BOARD_ROWS 6
 #define BOARD_COLS 7
@@ -66,10 +65,11 @@ int main(int argc, char *argv[])
         printf("\nTerminate program in ");
         for (int i = 3;i >= 0; i--)
         {
-#ifdef __WIN32
-        Sleep(1000);
-#else if __unix__
-	    sleep(1);
+#ifdef __linux__
+            fflush(stdout);
+            sleep(1);
+#else
+            Sleep(1000);
 #endif
             printf("%d ",i);
         }
@@ -134,7 +134,7 @@ int takeTurn(char *board, int player, const char *CHIPS)
 
     pthread_mutex_destroy(&lock);
 
-    return (int*)ret;
+    return (int)ret;
 }
 void *putChip(void *args)
 {
@@ -166,12 +166,11 @@ void *putChip(void *args)
         }
         else if (p->board[NextRow] != ' ' && p->board[CurrentRow] != ' ')
 	    return (void*)0;
-
-
-#ifdef _WIN32
-            Sleep(100);
-#else if __unix__
-	    sleep(0.1);
+#ifdef __linux__
+        fflush(stdout);
+        usleep(100000);
+#else
+        Sleep(100);
 #endif
     }
     pthread_mutex_unlock(&lock);
