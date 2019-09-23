@@ -1,3 +1,5 @@
+package Class;
+import java.io.IOException;
 
 public class Board implements Runnable {
 	int BOARD_COLS = 7;
@@ -12,6 +14,7 @@ public class Board implements Runnable {
 	public void printBoard(char[] board)
 	{
 		int col;
+		clearScreen();
 		System.out.println("\n    ****Connect Four****\n");
 		for(int row = 0; row < BOARD_ROWS; row++)
 	    {
@@ -27,7 +30,6 @@ public class Board implements Runnable {
 	
 	public void clearScreen()
 	{
-		System.out.print("\033[H\033[2J");  
-	    System.out.flush();  
+		System.out.println("\u000c");
 	}
 }	
